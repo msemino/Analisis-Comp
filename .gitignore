@@ -6,3 +6,5 @@ evidencias/
 .venv/
 venv/
 ultimo_reporte.txt
+scan_*.json
+reportes/

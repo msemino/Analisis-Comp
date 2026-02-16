@@ -1,6 +1,6 @@
 # Analisis-Comp — Competitive Price Auditor for Booking.com
 
-> **Agente de analisis competitivo** que escanea 8 alojamientos en Tigre (Booking.com) en paralelo, extrae precios filtrados por capacidad de huespedes y genera un reporte comparativo con ranking de precios y posicionamiento de tu hotel vs la competencia.
+> **Agente de analisis competitivo** que escanea 8 alojamientos en Tigre (Booking.com) en paralelo, extrae precios filtrados por capacidad de huespedes y genera doble output: **JSON estructurado** (para integracion con otros agentes) + **reporte texto** (para retrieve y consultas historicas).
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)](https://python.org)
 [![Playwright](https://img.shields.io/badge/Playwright-1.58-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
@@ -62,10 +62,10 @@ Analisis-Comp nace de una necesidad real: saber como se posiciona tu alojamiento
   │     v                                        │
   │  ┌────────────────────────────────────────┐  │
   │  │           report                       │  │
-  │  │                                        │  │   Tabla comparativa
-  │  │  Ranking por precio                    │  │   Posicionamiento
-  │  │  Posicion de tu hotel                  │  │   Archivo .txt
-  │  │  Diferencia vs mas barato              │  │
+  │  │                                        │  │   JSON estructurado
+  │  │  scan_{ts}.json (integracion)         │  │   Reporte texto
+  │  │  reportes/reporte_{ts}.txt (retrieve) │  │   Screenshots
+  │  │  Ranking + posicionamiento            │  │
   │  └────────────────────────────────────────┘  │
   │     |                                        │
   │     v                                        │
@@ -74,7 +74,7 @@ Analisis-Comp nace de una necesidad real: saber como se posiciona tu alojamiento
   └─────────────────────────────────────────────┘
           |
           v
-  Output: tabla + reporte + screenshots
+  Output: JSON + texto + screenshots
 ```
 
 ---
@@ -107,7 +107,8 @@ Para agregar o cambiar hoteles, editar la lista `HOTELS` en `config.py`.
 | **Posicionamiento** | Te dice cuanto mas caro/barato estas vs la competencia |
 | **Deteccion de estados** | AVAILABLE, OCCUPIED, CAPTCHA, ERROR por hotel |
 | **Evidencia visual** | Screenshot por hotel/fecha en `evidencias/` |
-| **Reporte en archivo** | Guarda `ultimo_reporte.txt` para referencia |
+| **JSON estructurado** | `scan_{ts}.json` con todos los datos para integracion downstream |
+| **Reportes texto** | `reportes/reporte_{ts}.txt` acumulativos para retrieve/consultas |
 | **Zero LLM** | Playwright directo, sin API keys, sin costo, sin VRAM |
 
 ---
@@ -125,11 +126,12 @@ Analisis-Comp/
 │     v
 ├── nodes/
 │   ├── scraper.py          Playwright paralelo: 8 hoteles x N fechas
-│   └── report.py           Genera tabla comparativa + ranking
+│   └── report.py           JSON + texto para retrieve
 │
 ├── state.py                GraphState, HotelResult, DateScanResult, RoomOption
 ├── config.py               Lista de hoteles, concurrencia, paths
-└── evidencias/             Screenshots por hotel_timestamp (gitignored)
+├── evidencias/             Screenshots por hotel_timestamp (gitignored)
+└── reportes/               Reportes .txt acumulativos (gitignored)
 ```
 
 **Modelos de datos:**
@@ -213,54 +215,81 @@ python main.py 21/02/2026 28/02/2026 07/03/2026 14/03/2026 21/03/2026 --guests 4
 
 ---
 
-## Output Example
+## Output
 
-Resultado real — 5 sabados, 4 personas, 8 hoteles (40 scrapes en ~2 minutos):
+Cada ejecucion genera **dos archivos**:
+
+| Archivo | Formato | Uso |
+|---------|---------|-----|
+| `scan_{timestamp}.json` | JSON estructurado | Integracion con otros agentes/sistemas |
+| `reportes/reporte_{timestamp}.txt` | Texto plano | Retrieve, consultas historicas, RAG |
+
+Los reportes texto se acumulan en `reportes/` — cada ejecucion agrega uno nuevo, nunca sobreescribe.
+
+### JSON Output (para integracion)
+
+```json
+{
+  "generated_at": "2026-02-16T...",
+  "guests": 4,
+  "dates_scanned": 2,
+  "hotels_per_date": 8,
+  "scans": [
+    {
+      "check_in": "21/02/2026",
+      "check_out": "22/02/2026",
+      "hotels": [
+        {
+          "slug": "albarellos",
+          "name": "Tigre Centro Cochera Gratis",
+          "is_own": true,
+          "status": "AVAILABLE",
+          "best_price": "$ 167.433",
+          "best_price_value": 167433,
+          "currency": "ARS",
+          "matched_options": [
+            {"guests_max": 4, "price_text": "$ 167.433", "price_value": 167433}
+          ],
+          "all_options": [
+            {"guests_max": 1, "price_text": "$ 142.318", "price_value": 142318},
+            {"guests_max": 4, "price_text": "$ 167.433", "price_value": 167433}
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Reporte Texto (para retrieve)
 
 ```
 ==========================================================================================
   ANALISIS COMPETITIVO — Alojamientos Tigre — 4 personas
+  Generado: 2026-02-16T...
 ==========================================================================================
 
   Fecha: 21/02/2026 -> 22/02/2026
 ------------------------------------------------------------------------------------------
-  Hotel                               Status       Precio 4p          Nota
+  Hotel                                Status        Precio             Opciones   Nota
 ------------------------------------------------------------------------------------------
-  Puerto Delta                        DISPONIBLE   $ 113.812
-  Puerto Tigre                        DISPONIBLE   $ 153.480
-  Tigre Centro Cochera Gratis         DISPONIBLE   $ 167.433           ** TU HOTEL **
-  Hospedaje de la Costa               OCUPADO      —
-  Awka Villa del Rio                  OCUPADO      —
-  Buenos Aires Rowing Club            OCUPADO      —
-  Departamento En Tigre               OCUPADO      —
-  La casa de tigre Centro             OCUPADO      —
+  Puerto Delta                         AVAILABLE     $ 113.812          1/3
+    └─ 4p: $ 113.812
+  Puerto Tigre                         AVAILABLE     $ 153.480          1/4
+    └─ 4p: $ 153.480
+  Tigre Centro Cochera Gratis          AVAILABLE     $ 167.433          1/2        ** TU HOTEL **
+    └─ 4p: $ 167.433
+  Hospedaje de la Costa                OCCUPIED      —                  0/0
+  Awka Villa del Rio                   OCCUPIED      —                  0/0
+  Buenos Aires Rowing Club             OCCUPIED      —                  0/0
 ------------------------------------------------------------------------------------------
   Mas barato: Puerto Delta @ $ 113.812
   Tu hotel esta $ 53,621 MAS CARO que el mas barato
 
-  Fecha: 14/03/2026 -> 15/03/2026
-------------------------------------------------------------------------------------------
-  Hotel                               Status       Precio 4p          Nota
-------------------------------------------------------------------------------------------
-  Puerto Delta                        DISPONIBLE   $ 139.527
-  Puerto Tigre                        DISPONIBLE   $ 169.903
-  Tigre Centro Cochera Gratis         OCUPADO      —                   ** TU HOTEL **
-  (... 5 mas ocupados)
-------------------------------------------------------------------------------------------
-  Mas barato: Puerto Delta @ $ 139.527
-
+==========================================================================================
+  Total: 1 fecha(s), 8 hoteles por fecha
 ==========================================================================================
 ```
-
-**Insights del analisis real:**
-
-| Fecha | Tu precio | Mas barato | Diferencia | Posicion |
-|-------|-----------|------------|------------|----------|
-| 21/02 | $167.433 | $113.812 (Puerto Delta) | +$53.621 | 3ro de 3 |
-| 28/02 | $167.433 | $113.812 (Puerto Delta) | +$53.621 | 3ro de 4 |
-| 07/03 | $167.433 | $113.812 (Puerto Delta) | +$53.621 | 4to de 4 |
-| 14/03 | OCUPADO | $139.527 (Puerto Delta) | — | — |
-| 21/03 | $167.433 | $130.584 (Puerto Delta) | +$36.849 | 4to de 4 |
 
 ---
 
@@ -275,11 +304,14 @@ Analisis-Comp/
 ├── nodes/
 │   ├── __init__.py
 │   ├── scraper.py          # Playwright paralelo (core)
-│   └── report.py           # Tabla comparativa + ranking
+│   └── report.py           # JSON + texto para retrieve
 ├── evidencias/             # Screenshots (gitignored)
+├── reportes/               # Reportes .txt acumulativos (gitignored)
+│   ├── reporte_20260216_143022.txt
+│   └── reporte_20260216_150511.txt
+├── scan_*.json             # JSON estructurado (gitignored)
 ├── requirements.txt
-├── .gitignore
-└── ultimo_reporte.txt      # Ultimo reporte generado (gitignored)
+└── .gitignore
 ```
 
 ---
