@@ -83,7 +83,7 @@ Analisis-Comp nace de una necesidad real: saber como se posiciona tu alojamiento
 
 | # | Hotel | Tipo | Zona |
 |---|-------|------|------|
-| 1 | **Tigre Centro Cochera Gratis** | TU HOTEL (referencia) | Tigre Centro |
+| 1 | **Mi propiedad (ejemplo)** | TU HOTEL (referencia) | Tigre Centro |
 | 2 | Puerto Delta | Competidor | Delta |
 | 3 | Puerto Tigre | Competidor | Tigre |
 | 4 | Hospedaje de la Costa | Competidor | Tigre |
@@ -240,8 +240,8 @@ Los reportes texto se acumulan en `reportes/` — cada ejecucion agrega uno nuev
       "check_out": "22/02/2026",
       "hotels": [
         {
-          "slug": "albarellos",
-          "name": "Tigre Centro Cochera Gratis",
+          "slug": "mi-propiedad",
+          "name": "Mi propiedad (ejemplo)",
           "is_own": true,
           "status": "AVAILABLE",
           "best_price": "$ 167.433",
@@ -277,7 +277,7 @@ Los reportes texto se acumulan en `reportes/` — cada ejecucion agrega uno nuev
     └─ 4p: $ 113.812
   Puerto Tigre                         AVAILABLE     $ 153.480          1/4
     └─ 4p: $ 153.480
-  Tigre Centro Cochera Gratis          AVAILABLE     $ 167.433          1/2        ** TU HOTEL **
+  Mi propiedad (ejemplo)               AVAILABLE     $ 167.433          1/2        ** TU HOTEL **
     └─ 4p: $ 167.433
   Hospedaje de la Costa                OCCUPIED      —                  0/0
   Awka Villa del Rio                   OCCUPIED      —                  0/0

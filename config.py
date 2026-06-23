@@ -5,7 +5,7 @@ from pathlib import Path
 # --- Competidores ---
 # Tupla: (slug identificador, nombre corto, URL base, es_propio)
 HOTELS = [
-    ("albarellos",    "Tigre Centro Cochera Gratis",        "https://www.booking.com/hotel/ar/albarellos-delta.es-ar.html",              True),
+    ("mi-propiedad",  "Mi propiedad (ejemplo)",             "https://www.booking.com/hotel/ar/example-hotel.es-ar.html",                 True),
     ("puerto-delta",  "Puerto Delta",                       "https://www.booking.com/hotel/ar/puerto-delta.es-ar.html",                  False),
     ("puerto-tigre",  "Puerto Tigre",                       "https://www.booking.com/hotel/ar/puerto-tigre.es-ar.html",                  False),
     ("vivanco",       "Hospedaje de la Costa",              "https://www.booking.com/hotel/ar/hospedaje-vivanco.es-ar.html",             False),
