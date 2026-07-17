@@ -377,4 +377,4 @@ builder.add_edge("alert", END)
 - **Playwright** — [playwright.dev](https://playwright.dev)
 - **LangGraph** — [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph)
 - **Pydantic** — [pydantic.dev](https://docs.pydantic.dev)
-- **Built with** Claude Code (Opus 4.6) + RTX 3090 Tech Lab
+- **Built with** Claude Code (Opus 4.6) + 24 GB GPU Tech Lab
